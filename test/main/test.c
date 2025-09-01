@@ -10,8 +10,8 @@ int main(void) {
 	test_ptr_aligned_size();
 	test_total_size();
 	test_arena_use();
-	test_ptr_free();
 	test_free_ptr_index();
+	test_ptr_free();
 
 	test_print_results();
 	return 0;

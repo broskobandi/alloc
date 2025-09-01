@@ -8,13 +8,21 @@
 #include <sys/mman.h>
 #include <string.h>
 
-#define VALID_MAGIC (size_t)0x900DF00D
+typedef enum ptr_state {
+	FREE,
+	VALID,
+} ptr_state_t;
+
 #define ARENA_SIZE 1024LU * 4
+#define ROUNDUP(size)\
+	(((size) + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1))
 #define PTR_ALIGNED_SIZE\
-	((sizeof(ptr_t) + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1))
+	ROUNDUP(sizeof(ptr_t))
+#define TOTAL_SIZE(size)\
+	(PTR_ALIGNED_SIZE + ROUNDUP(size))
 #define MIN_ALLOC_SIZE alignof(max_align_t)
 #define NUM_ALLOC_SIZES\
-	(ARENA_SIZE - MIN_ALLOC_SIZE - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE
+	((ARENA_SIZE - MIN_ALLOC_SIZE - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE)
 #define MMAP(size)\
 	mmap(NULL, (size), PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0)
 
@@ -25,9 +33,11 @@ struct ptr {
 	void *data;
 	size_t size;
 	arena_t *arena;
-	size_t valid_magic;
-	ptr_t *next;
-	ptr_t *prev;
+	ptr_t *next_valid;
+	ptr_t *prev_valid;
+	ptr_t *next_free;
+	ptr_t *prev_free;
+	ptr_state_t state;
 };
 
 struct arena {
@@ -79,49 +89,58 @@ static inline int arena_reset() {
 	OK(0);
 }
 
-static inline size_t roundup(size_t size) {
-	if (!size) ERR("size cannot be 0.", (size_t)-1);
-	OK(((size + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1)));
-}
-
-static inline size_t total_size(size_t size) {
-	if (!size) ERR("size cannot be 0.", (size_t)-1);
-	OK(PTR_ALIGNED_SIZE + roundup(size));
-}
-
 static inline void *arena_use(size_t size) {
 	if (!size) ERR("size cannot be 0.", NULL);
-	if (total_size(size) > ARENA_SIZE) ERR("size is too big.", NULL);
-	if (g_arena_tail->offset + total_size(size) > ARENA_SIZE)
+	if (TOTAL_SIZE(size) > ARENA_SIZE) ERR("size is too big.", NULL);
+	if (g_arena_tail->offset + TOTAL_SIZE(size) > ARENA_SIZE)
 		if (arena_expand()) ERR("Failed to expand arena.", NULL);
 	if (!g_arena_tail->ptrs_tail) {
 		g_arena_tail->ptrs_tail = (ptr_t*)&g_arena_tail->buff[g_arena_tail->offset];
 	} else {
-		g_arena_tail->ptrs_tail->next = (ptr_t*)&g_arena_tail->buff[g_arena_tail->offset];
-		g_arena_tail->ptrs_tail->next->prev = g_arena_tail->ptrs_tail;
-		g_arena_tail->ptrs_tail = g_arena_tail->ptrs_tail->next;
+		g_arena_tail->ptrs_tail->next_valid =
+			(ptr_t*)&g_arena_tail->buff[g_arena_tail->offset];
+		g_arena_tail->ptrs_tail->next_valid->prev_valid =
+			g_arena_tail->ptrs_tail;
+		g_arena_tail->ptrs_tail =
+			g_arena_tail->ptrs_tail->next_valid;
 	}
-	g_arena_tail->ptrs_tail->next = NULL;
+	g_arena_tail->ptrs_tail->next_valid = NULL;
 	g_arena_tail->ptrs_tail->size = size;
-	g_arena_tail->ptrs_tail->valid_magic = VALID_MAGIC;
+	g_arena_tail->ptrs_tail->state = VALID;
 	g_arena_tail->ptrs_tail->arena = g_arena_tail;
 	g_arena_tail->ptrs_tail->data = 
 		(unsigned char*)g_arena_tail->ptrs_tail + PTR_ALIGNED_SIZE;
-	g_arena_tail->offset = total_size(size);
+	g_arena_tail->offset = TOTAL_SIZE(size);
 	OK(g_arena_tail->ptrs_tail->data);
 }
 
 static inline size_t free_ptr_index(size_t size) {
 	if (!size) ERR("size cannto be 0.", (size_t)-1);
-	OK(((total_size(size) - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE) - 1);
+	OK(((TOTAL_SIZE(size) - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE) - 1);
 }
 
+#include <stdio.h>
 static inline int ptr_free(void *data) {
 	if (!data) ERR("data cannot be NULL.", 1);
 	ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
-	if (ptr->valid_magic != VALID_MAGIC) ERR("Invalid argument.", 1);
-	// if (!g_free_ptr_tails)
+	if (ptr->state != VALID) ERR("Invalid argument.", 1);
+	size_t i = free_ptr_index(ptr->size);
+	printf("%lu\n", ptr->size);
+	if (!g_free_ptr_tails[i]) {
+		g_free_ptr_tails[i] = ptr;
+		ptr->prev_free = NULL;
+	} else {
+		g_free_ptr_tails[i]->next_free = ptr;
+		g_free_ptr_tails[i]->next_free->prev_free = g_free_ptr_tails[i];
+		g_free_ptr_tails[i] = g_free_ptr_tails[i]->next_free;
+	}
+	g_free_ptr_tails[i]->next_free = NULL;
+	g_free_ptr_tails[i]->state = FREE;
 	OK(0);
 }
+
+// static inline void *free_ptr_use(size_t size) {
+//
+// }
 
 #endif

@@ -10,7 +10,7 @@ void test_roundup();
 void test_ptr_aligned_size();
 void test_total_size();
 void test_arena_use();
-void test_ptr_free();
 void test_free_ptr_index();
+void test_ptr_free();
 
 #endif

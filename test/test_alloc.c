@@ -47,30 +47,21 @@ void test_arena_del() {
 void test_roundup() {
 	{ // Normal case
 		size_t size = alignof(max_align_t) / 2;
-		ASSERT(roundup(size) == alignof(max_align_t));
-	}
-	{ // size 0
-		ASSERT(roundup(0) == (size_t)-1);
+		ASSERT(ROUNDUP(size) == alignof(max_align_t));
 	}
 }
 
 void test_ptr_aligned_size() {
 	{ // Normal case
-		ASSERT(roundup(sizeof(ptr_t)) == PTR_ALIGNED_SIZE);
-	}
-	{ // size 0
-		ASSERT(roundup(0) == (size_t)-1);
+		ASSERT(ROUNDUP(sizeof(ptr_t)) == PTR_ALIGNED_SIZE);
 	}
 }
 
 void test_total_size() {
 	{ // Normal case
 		size_t size = alignof(max_align_t) / 2;
-		size_t exp = roundup(size) + PTR_ALIGNED_SIZE;
-		ASSERT(total_size(size) == exp);
-	}
-	{ // Normal case
-		ASSERT(total_size(0) == (size_t)-1);
+		size_t exp = ROUNDUP(size) + PTR_ALIGNED_SIZE;
+		ASSERT(TOTAL_SIZE(size) == exp);
 	}
 }
 
@@ -82,17 +73,17 @@ void test_arena_use() {
 		ASSERT(data);
 		ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
 		ASSERT(ptr->size == size);
-		ASSERT(ptr->valid_magic == VALID_MAGIC);
+		ASSERT(ptr->state == VALID);
 
 		size_t size2 = size * 2;
 		void *data2 = arena_use(size2);
 		ASSERT(data2);
 		ptr_t *ptr2 = (ptr_t*)((unsigned char*)data2 - PTR_ALIGNED_SIZE);
 		ASSERT(ptr2->size == size2);
-		ASSERT(ptr2->valid_magic == VALID_MAGIC);
+		ASSERT(ptr2->state == VALID);
 
-		ASSERT(ptr2->prev == ptr);
-		ASSERT(ptr->next == ptr2);
+		ASSERT(ptr2->prev_valid == ptr);
+		ASSERT(ptr->next_valid == ptr2);
 	}
 	{ // size 0
 		arena_reset();
@@ -122,9 +113,22 @@ void test_free_ptr_index() {
 void test_ptr_free() {
 	{ // Normal case
 		arena_reset();
-		size_t size = 5;
-		void *data = arena_use(size);
-		ASSERT(!ptr_free(data));
+		size_t size1 = MIN_ALLOC_SIZE / 2;
+		size_t size2 = MIN_ALLOC_SIZE * 2;
+		// size_t index1 = free_ptr_index(size1);
+		// size_t index2 = free_ptr_index(size2);
+		void *data1 = arena_use(size1);
+		// void *data2 = arena_use(size1);
+		void *data3 = arena_use(size2);
+		void *data4 = arena_use(size2);
+		// ptr_t *ptr1 = (ptr_t*)((unsigned char*)data1 - PTR_ALIGNED_SIZE);
+		// ptr_t *ptr2 = (ptr_t*)((unsigned char*)data2 - PTR_ALIGNED_SIZE);
+		// ptr_t *ptr3 = (ptr_t*)((unsigned char*)data3 - PTR_ALIGNED_SIZE);
+		// ptr_t *ptr4 = (ptr_t*)((unsigned char*)data4 - PTR_ALIGNED_SIZE);
+		ASSERT(!ptr_free(data1));
+		// ASSERT(!ptr_free(data2));
+		ASSERT(!ptr_free(data3));
+		ASSERT(!ptr_free(data4));
 	}
 	{ // Data NULL
 		arena_reset();
