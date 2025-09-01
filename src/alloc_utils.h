@@ -149,7 +149,13 @@ static inline void *free_ptr_use(size_t size) {
 	ptr->next_free = NULL;
 	ptr->prev_free = NULL;
 	ptr->state = VALID;
-	OK(ptr);
+	OK(ptr->data);
 }
+
+// static inline void *mmap_use(size_t size) {
+// 	if (!size) ERR("size cannot be 0.", NULL);
+// 	if (TOTAL_SIZE(size) <= ARENA_SIZE) ERR("size is too small.", NULL);
+//
+// }
 
 #endif

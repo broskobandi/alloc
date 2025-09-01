@@ -190,10 +190,14 @@ void test_free_ptr_use() {
 		ASSERT(!ptr_free(data3));
 		ASSERT(!ptr_free(data4));
 
-		ptr_t *ptr5 = free_ptr_use(size1);
-		ptr_t *ptr6 = free_ptr_use(size1);
-		ptr_t *ptr7 = free_ptr_use(size2);
-		ptr_t *ptr8 = free_ptr_use(size2);
+		void *data5 = free_ptr_use(size1);
+		void *data6 = free_ptr_use(size1);
+		void *data7 = free_ptr_use(size2);
+		void *data8 = free_ptr_use(size2);
+		ptr_t *ptr5 = (ptr_t*)((unsigned char*)data5 - PTR_ALIGNED_SIZE);
+		ptr_t *ptr6 = (ptr_t*)((unsigned char*)data6 - PTR_ALIGNED_SIZE);
+		ptr_t *ptr7 = (ptr_t*)((unsigned char*)data7 - PTR_ALIGNED_SIZE);
+		ptr_t *ptr8 = (ptr_t*)((unsigned char*)data8 - PTR_ALIGNED_SIZE);
 		ASSERT(ptr5 == ptr2);
 		ASSERT(ptr6 == ptr1);
 		ASSERT(ptr7 == ptr4);
@@ -223,5 +227,13 @@ void test_free_ptr_use() {
 		reset();
 		size_t size = ARENA_SIZE / 32;
 		ASSERT(!free_ptr_use(size));
+	}
+}
+
+void test_mmap_use() {
+	{ // Normal case
+	}
+	{
+
 	}
 }
