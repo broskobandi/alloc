@@ -68,8 +68,8 @@ void test_total_size() {
 void test_arena_use() {
 	{ // Normal case
 		arena_reset();
-		size_t size1 = MIN_ALLOC_SIZE / 2;
-		size_t size2 = MIN_ALLOC_SIZE * 2;
+		size_t size1 = ARENA_SIZE / 32;
+		size_t size2 = ARENA_SIZE / 16;
 		void *data1 = arena_use(size1);
 		void *data2 = arena_use(size1);
 		void *data3 = arena_use(size2);
@@ -146,6 +146,8 @@ void test_ptr_free() {
 		ASSERT(g_free_ptr_tails[index1]->prev_free == ptr1);
 		ASSERT(g_free_ptr_tails[index2] == ptr4);
 		ASSERT(g_free_ptr_tails[index2]->prev_free == ptr3);
+		ASSERT(!g_free_ptr_tails[index1]->next_free)
+		ASSERT(!g_free_ptr_tails[index2]->next_free)
 	}
 	{ // Data NULL
 		arena_reset();
