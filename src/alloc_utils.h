@@ -68,14 +68,15 @@ static inline int arena_expand() {
 static inline int arena_del(arena_t *arena) {
 	if (!arena) ERR("arena cannot be NULL.", 1);
 	if (arena == &g_arena_head) ERR("arena head cannot be deleted.", 1);
-	if (arena->next) {
+	if (arena->prev && arena->next) {
 		arena->prev->next = arena->next;
 		arena->next->prev = arena->prev;
 		if (munmap(arena, sizeof(arena_t))) ERR("Failed to unmap arena.", 1);
-	} else {
-		arena = arena->prev;
-		if (munmap(arena->next, sizeof(arena_t))) ERR("Failed to unmap arena.", 1);
-		arena->next = NULL;
+	} else if (!arena->next) {
+		g_arena_tail = arena->prev;
+		if (munmap(g_arena_tail->next, sizeof(arena_t)))
+			ERR("Failed to unmap arena.", 1);
+		g_arena_tail->next = NULL;
 	}
 	OK(0);
 }
@@ -88,7 +89,8 @@ static inline int reset() {
 	}
 	memset(&g_arena_head, 0, sizeof(arena_t));
 	g_arena_tail = &g_arena_head;
-	memset(g_free_ptr_tails, 0, NUM_ALLOC_SIZES * sizeof(ptr_t*));
+	// memset(g_free_ptr_tails, 0, NUM_ALLOC_SIZES * sizeof(ptr_t*));
+	memset(g_free_ptr_tails, 0, sizeof(g_free_ptr_tails));
 	OK(0);
 }
 
@@ -117,10 +119,20 @@ static inline void *arena_use(size_t size) {
 	OK(g_arena_tail->ptrs_tail->data);
 }
 
+#include <stdio.h>
 static inline int ptr_free(void *data) {
 	if (!data) ERR("data cannot be NULL.", 1);
 	ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
 	if (ptr->state != VALID) ERR("Invalid argument.", 1);
+	if (
+		!ptr->arena->ptrs_tail->prev_valid &&
+		ptr->arena->prev &&
+		ptr->arena->prev->offset < ARENA_SIZE - MIN_ALLOC_SIZE - PTR_ALIGNED_SIZE
+	) {
+		arena_del(ptr->arena);
+		// printf("segg\n");
+		OK(0);
+	}
 	size_t i = FREE_PTR_INDEX(ptr->size);
 	if (!g_free_ptr_tails[i]) {
 		g_free_ptr_tails[i] = ptr;
@@ -152,10 +164,12 @@ static inline void *free_ptr_use(size_t size) {
 	OK(ptr->data);
 }
 
-// static inline void *mmap_use(size_t size) {
-// 	if (!size) ERR("size cannot be 0.", NULL);
-// 	if (TOTAL_SIZE(size) <= ARENA_SIZE) ERR("size is too small.", NULL);
-//
-// }
+static inline void *mmap_use(size_t size) {
+	if (!size) ERR("size cannot be 0.", NULL);
+	if (TOTAL_SIZE(size) <= ARENA_SIZE) ERR("size is too small.", NULL);
+	ptr_t *ptr = MMAP(TOTAL_SIZE(size));
+	ptr->data = (unsigned char*)ptr + PTR_ALIGNED_SIZE;
+	OK(ptr->data);
+}
 
 #endif

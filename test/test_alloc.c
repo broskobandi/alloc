@@ -160,8 +160,23 @@ void test_ptr_free() {
 		ASSERT(ptr3->state == FREE);
 		ASSERT(ptr4->state == FREE);
 	}
+	{ // Normal case: delete arena
+		reset();
+		ASSERT(g_arena_tail == &g_arena_head);
+		ASSERT(!arena_expand());
+		void *data = arena_use(MIN_ALLOC_SIZE);
+		ASSERT(data);
+		ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
+		ASSERT(ptr->arena == g_arena_head.next);
+		ASSERT(g_arena_head.next == g_arena_tail);
+		ASSERT(g_arena_head.offset < ARENA_SIZE - MIN_ALLOC_SIZE - PTR_ALIGNED_SIZE);
+		ASSERT(g_arena_head.next->prev);
+		ASSERT(!ptr_free(data));
+		ASSERT(g_arena_tail == &g_arena_head);
+	}
 	{ // Data NULL
 		reset();
+		printf("segg\n");
 		ASSERT(ptr_free(NULL));
 	}
 	{ // Invalid argument
