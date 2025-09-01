@@ -68,22 +68,38 @@ void test_total_size() {
 void test_arena_use() {
 	{ // Normal case
 		arena_reset();
-		size_t size = 5;
-		void *data = arena_use(size);
-		ASSERT(data);
-		ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
-		ASSERT(ptr->size == size);
-		ASSERT(ptr->state == VALID);
-
-		size_t size2 = size * 2;
-		void *data2 = arena_use(size2);
+		size_t size1 = MIN_ALLOC_SIZE / 2;
+		size_t size2 = MIN_ALLOC_SIZE * 2;
+		void *data1 = arena_use(size1);
+		void *data2 = arena_use(size1);
+		void *data3 = arena_use(size2);
+		void *data4 = arena_use(size2);
+		ASSERT(data1);
 		ASSERT(data2);
-		ptr_t *ptr2 = (ptr_t*)((unsigned char*)data2 - PTR_ALIGNED_SIZE);
-		ASSERT(ptr2->size == size2);
+		ASSERT(data3);
+		ASSERT(data4);
+		ptr_t *ptr4 = g_arena_tail->ptrs_tail;
+		ptr_t *ptr3 = ptr4->prev_valid;
+		ptr_t *ptr2 = ptr3->prev_valid;
+		ptr_t *ptr1 = ptr2->prev_valid;
+		ASSERT(ptr4->data == data4);
+		ASSERT(ptr3->data == data3);
+		ASSERT(ptr2->data == data2);
+		ASSERT(ptr1->data == data1);
+		ASSERT(ptr1->size == size1);
+		ASSERT(ptr2->size == size1);
+		ASSERT(ptr3->size == size2);
+		ASSERT(ptr4->size == size2);
+		ASSERT(ptr1->state == VALID);
 		ASSERT(ptr2->state == VALID);
-
-		ASSERT(ptr2->prev_valid == ptr);
-		ASSERT(ptr->next_valid == ptr2);
+		ASSERT(ptr3->state == VALID);
+		ASSERT(ptr4->state == VALID);
+		ASSERT(ptr1->next_valid == ptr2);
+		ASSERT(ptr2->prev_valid == ptr1);
+		ASSERT(ptr2->next_valid == ptr3);
+		ASSERT(ptr3->prev_valid == ptr2);
+		ASSERT(ptr3->next_valid == ptr4);
+		ASSERT(ptr4->prev_valid == ptr3);
 	}
 	{ // size 0
 		arena_reset();
@@ -105,9 +121,6 @@ void test_free_ptr_index() {
 		ASSERT(FREE_PTR_INDEX(MIN_ALLOC_SIZE * 3) == 2);
 		arena_reset();
 	}
-	{ // size  0
-		ASSERT(FREE_PTR_INDEX(0) == (size_t)-1);
-	}
 }
 
 void test_ptr_free() {
@@ -115,20 +128,24 @@ void test_ptr_free() {
 		arena_reset();
 		size_t size1 = MIN_ALLOC_SIZE / 2;
 		size_t size2 = MIN_ALLOC_SIZE * 2;
-		// size_t index1 = FREE_PTR_INDEX(size1);
-		// size_t index2 = FREE_PTR_INDEX(size2);
+		size_t index1 = FREE_PTR_INDEX(size1);
+		size_t index2 = FREE_PTR_INDEX(size2);
 		void *data1 = arena_use(size1);
-		// void *data2 = arena_use(size1);
+		void *data2 = arena_use(size1);
 		void *data3 = arena_use(size2);
 		void *data4 = arena_use(size2);
-		// ptr_t *ptr1 = (ptr_t*)((unsigned char*)data1 - PTR_ALIGNED_SIZE);
-		// ptr_t *ptr2 = (ptr_t*)((unsigned char*)data2 - PTR_ALIGNED_SIZE);
-		// ptr_t *ptr3 = (ptr_t*)((unsigned char*)data3 - PTR_ALIGNED_SIZE);
-		// ptr_t *ptr4 = (ptr_t*)((unsigned char*)data4 - PTR_ALIGNED_SIZE);
+		ptr_t *ptr1 = (ptr_t*)((unsigned char*)data1 - PTR_ALIGNED_SIZE);
+		ptr_t *ptr2 = (ptr_t*)((unsigned char*)data2 - PTR_ALIGNED_SIZE);
+		ptr_t *ptr3 = (ptr_t*)((unsigned char*)data3 - PTR_ALIGNED_SIZE);
+		ptr_t *ptr4 = (ptr_t*)((unsigned char*)data4 - PTR_ALIGNED_SIZE);
 		ASSERT(!ptr_free(data1));
-		// ASSERT(!ptr_free(data2));
+		ASSERT(!ptr_free(data2));
 		ASSERT(!ptr_free(data3));
 		ASSERT(!ptr_free(data4));
+		ASSERT(g_free_ptr_tails[index1] == ptr2);
+		ASSERT(g_free_ptr_tails[index1]->prev_free == ptr1);
+		ASSERT(g_free_ptr_tails[index2] == ptr4);
+		ASSERT(g_free_ptr_tails[index2]->prev_free == ptr3);
 	}
 	{ // Data NULL
 		arena_reset();

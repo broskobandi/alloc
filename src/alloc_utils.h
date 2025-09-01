@@ -20,7 +20,6 @@
 	((ARENA_SIZE - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE)
 #define FREE_PTR_INDEX(size)\
 	(((TOTAL_SIZE((size)) - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE) - 1)
-	
 #define MMAP(size)\
 	mmap(NULL, (size), PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0)
 
@@ -113,7 +112,7 @@ static inline void *arena_use(size_t size) {
 	g_arena_tail->ptrs_tail->arena = g_arena_tail;
 	g_arena_tail->ptrs_tail->data = 
 		(unsigned char*)g_arena_tail->ptrs_tail + PTR_ALIGNED_SIZE;
-	g_arena_tail->offset = TOTAL_SIZE(size);
+	g_arena_tail->offset += TOTAL_SIZE(size);
 	OK(g_arena_tail->ptrs_tail->data);
 }
 
@@ -123,7 +122,7 @@ static inline int ptr_free(void *data) {
 	ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
 	if (ptr->state != VALID) ERR("Invalid argument.", 1);
 	size_t i = FREE_PTR_INDEX(ptr->size);
-	printf("%lu\n", ptr->size);
+	// printf("%lu\n", ptr->size);
 	if (!g_free_ptr_tails[i]) {
 		g_free_ptr_tails[i] = ptr;
 		ptr->prev_free = NULL;
