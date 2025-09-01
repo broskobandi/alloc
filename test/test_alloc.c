@@ -189,7 +189,6 @@ void test_ptr_free() {
 	}
 	{ // Data NULL
 		reset();
-		printf("segg\n");
 		ASSERT(ptr_free(NULL));
 	}
 	{ // Invalid argument
@@ -260,8 +259,19 @@ void test_free_ptr_use() {
 
 void test_mmap_use() {
 	{ // Normal case
+		void *data = mmap_use(ARENA_SIZE);
+		ASSERT(data);
+		ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
+		ASSERT(ptr->state == VALID);
+		ASSERT(ptr->size == ARENA_SIZE);
+		ASSERT(ptr->data == data);
 	}
-	{
-
+	{ // size 0
+		void *data = mmap_use(0);
+		ASSERT(!data);
+	}
+	{ // size too small
+		void *data = mmap_use(MIN_ALLOC_SIZE);
+		ASSERT(!data);
 	}
 }

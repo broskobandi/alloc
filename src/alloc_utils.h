@@ -22,6 +22,8 @@
 	(((TOTAL_SIZE((size)) - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE) - 1)
 #define MMAP(size)\
 	mmap(NULL, (size), PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0)
+#define PTR(data)\
+	((ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE))
 
 typedef enum ptr_state {
 	FREE,
@@ -89,7 +91,6 @@ static inline int reset() {
 	}
 	memset(&g_arena_head, 0, sizeof(arena_t));
 	g_arena_tail = &g_arena_head;
-	// memset(g_free_ptr_tails, 0, NUM_ALLOC_SIZES * sizeof(ptr_t*));
 	memset(g_free_ptr_tails, 0, sizeof(g_free_ptr_tails));
 	OK(0);
 }
@@ -119,7 +120,6 @@ static inline void *arena_use(size_t size) {
 	OK(g_arena_tail->ptrs_tail->data);
 }
 
-#include <stdio.h>
 static inline int ptr_free(void *data) {
 	if (!data) ERR("data cannot be NULL.", 1);
 	ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
@@ -130,7 +130,6 @@ static inline int ptr_free(void *data) {
 		ptr->arena->prev->offset < ARENA_SIZE - MIN_ALLOC_SIZE - PTR_ALIGNED_SIZE
 	) {
 		arena_del(ptr->arena);
-		// printf("segg\n");
 		OK(0);
 	}
 	size_t i = FREE_PTR_INDEX(ptr->size);
@@ -168,7 +167,13 @@ static inline void *mmap_use(size_t size) {
 	if (!size) ERR("size cannot be 0.", NULL);
 	if (TOTAL_SIZE(size) <= ARENA_SIZE) ERR("size is too small.", NULL);
 	ptr_t *ptr = MMAP(TOTAL_SIZE(size));
+	if (!ptr) ERR("Failed to allocate ptr with mmap().", NULL);
 	ptr->data = (unsigned char*)ptr + PTR_ALIGNED_SIZE;
+	ptr->state = VALID;
+	ptr->arena = NULL;
+	ptr->prev_valid = NULL;
+	ptr->next_valid = NULL;
+	ptr->size = size;
 	OK(ptr->data);
 }
 
