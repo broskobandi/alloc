@@ -74,23 +74,67 @@ void test_total_size() {
 	}
 }
 
-void test_use_arena() {
+void test_arena_use() {
 	{ // Normal case
+		arena_reset();
 		size_t size = 5;
-		void *data = use_arena(size);
+		void *data = arena_use(size);
 		ASSERT(data);
 		ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
 		ASSERT(ptr->size == size);
-		ASSERT(ptr->is_valid);
+		ASSERT(ptr->valid_magic == VALID_MAGIC);
 
 		size_t size2 = size * 2;
-		void *data2 = use_arena(size2);
+		void *data2 = arena_use(size2);
 		ASSERT(data2);
 		ptr_t *ptr2 = (ptr_t*)((unsigned char*)data2 - PTR_ALIGNED_SIZE);
 		ASSERT(ptr2->size == size2);
-		ASSERT(ptr2->is_valid);
+		ASSERT(ptr2->valid_magic == VALID_MAGIC);
 
 		ASSERT(ptr2->prev == ptr);
 		ASSERT(ptr->next == ptr2);
 	}
+	{ // size 0
+		arena_reset();
+		ASSERT(!arena_use(0));
+	}
+	{ // size too big
+		arena_reset();
+		ASSERT(!arena_use(ARENA_SIZE * 2));
+	}
 }
+
+void test_free_ptr_index() {
+	{ // Normal case
+		arena_reset();
+		ASSERT(free_ptr_index(MIN_ALLOC_SIZE) == 0);
+		arena_reset();
+		ASSERT(free_ptr_index(MIN_ALLOC_SIZE * 2) == 1);
+		arena_reset();
+		ASSERT(free_ptr_index(MIN_ALLOC_SIZE * 3) == 2);
+		arena_reset();
+	}
+	{ // size  0
+		ASSERT(free_ptr_index(0) == (size_t)-1);
+	}
+}
+
+void test_ptr_free() {
+	{ // Normal case
+		arena_reset();
+		size_t size = 5;
+		void *data = arena_use(size);
+		ASSERT(!ptr_free(data));
+	}
+	{ // Data NULL
+		arena_reset();
+		ASSERT(ptr_free(NULL));
+	}
+	{ // Invalid argument
+		arena_reset();
+		int x = 5;
+		void *dummy = &x;
+		ASSERT(ptr_free(dummy));
+	}
+}
+

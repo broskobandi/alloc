@@ -8,6 +8,7 @@
 #include <sys/mman.h>
 #include <string.h>
 
+#define VALID_MAGIC (size_t)0x900DF00D
 #define ARENA_SIZE 1024LU * 4
 #define PTR_ALIGNED_SIZE\
 	((sizeof(ptr_t) + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1))
@@ -24,7 +25,7 @@ struct ptr {
 	void *data;
 	size_t size;
 	arena_t *arena;
-	bool is_valid;
+	size_t valid_magic;
 	ptr_t *next;
 	ptr_t *prev;
 };
@@ -39,7 +40,7 @@ struct arena {
 
 extern arena_t g_arena_head;
 extern arena_t *g_arena_tail;
-extern ptr_t *g_free_ptrs_tail[NUM_ALLOC_SIZES];
+extern ptr_t *g_free_ptr_tails[NUM_ALLOC_SIZES];
 
 static inline int arena_expand() {
 	g_arena_tail->next = MMAP(sizeof(arena_t));
@@ -88,8 +89,7 @@ static inline size_t total_size(size_t size) {
 	OK(PTR_ALIGNED_SIZE + roundup(size));
 }
 
-#include <stdio.h>
-static inline void *use_arena(size_t size) {
+static inline void *arena_use(size_t size) {
 	if (!size) ERR("size cannot be 0.", NULL);
 	if (total_size(size) > ARENA_SIZE) ERR("size is too big.", NULL);
 	if (g_arena_tail->offset + total_size(size) > ARENA_SIZE)
@@ -103,12 +103,25 @@ static inline void *use_arena(size_t size) {
 	}
 	g_arena_tail->ptrs_tail->next = NULL;
 	g_arena_tail->ptrs_tail->size = size;
-	g_arena_tail->ptrs_tail->is_valid = true;
+	g_arena_tail->ptrs_tail->valid_magic = VALID_MAGIC;
 	g_arena_tail->ptrs_tail->arena = g_arena_tail;
 	g_arena_tail->ptrs_tail->data = 
 		(unsigned char*)g_arena_tail->ptrs_tail + PTR_ALIGNED_SIZE;
 	g_arena_tail->offset = total_size(size);
 	OK(g_arena_tail->ptrs_tail->data);
+}
+
+static inline size_t free_ptr_index(size_t size) {
+	if (!size) ERR("size cannto be 0.", (size_t)-1);
+	OK(((total_size(size) - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE) - 1);
+}
+
+static inline int ptr_free(void *data) {
+	if (!data) ERR("data cannot be NULL.", 1);
+	ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
+	if (ptr->valid_magic != VALID_MAGIC) ERR("Invalid argument.", 1);
+	// if (!g_free_ptr_tails)
+	OK(0);
 }
 
 #endif

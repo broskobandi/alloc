@@ -3,7 +3,7 @@
 
 arena_t g_arena_head;
 arena_t *g_arena_tail = &g_arena_head;
-ptr_t *g_free_ptrs_tail[NUM_ALLOC_SIZES];
+ptr_t *g_free_ptr_tails[NUM_ALLOC_SIZES] = {0};
 
 pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
 

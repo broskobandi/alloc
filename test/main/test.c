@@ -9,7 +9,9 @@ int main(void) {
 	test_roundup();
 	test_ptr_aligned_size();
 	test_total_size();
-	test_use_arena();
+	test_arena_use();
+	test_ptr_free();
+	test_free_ptr_index();
 
 	test_print_results();
 	return 0;
