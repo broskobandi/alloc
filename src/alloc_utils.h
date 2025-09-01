@@ -8,18 +8,20 @@
 #include <sys/mman.h>
 #include <string.h>
 
+#include <stdio.h>
+
 #define ARENA_SIZE 1024LU * 4
 #define ROUNDUP(size)\
-	(((size) + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1))
+	(size_t)(((size) + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1))
 #define PTR_ALIGNED_SIZE\
-	ROUNDUP(sizeof(ptr_t))
+	(size_t)ROUNDUP(sizeof(ptr_t))
 #define TOTAL_SIZE(size)\
-	(PTR_ALIGNED_SIZE + ROUNDUP(size))
+	(size_t)(PTR_ALIGNED_SIZE + ROUNDUP(size))
 #define MIN_ALLOC_SIZE alignof(max_align_t)
 #define NUM_ALLOC_SIZES\
-	((ARENA_SIZE - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE)
+	(size_t)((ARENA_SIZE - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE)
 #define FREE_PTR_INDEX(size)\
-	(((TOTAL_SIZE((size)) - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE) - 1)
+	(size_t)(((TOTAL_SIZE((size)) - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE) - 1)
 #define MMAP(size)\
 	mmap(NULL, (size), PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0)
 #define PTR(data)\

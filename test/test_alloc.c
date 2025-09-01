@@ -270,12 +270,14 @@ void test_free_ptr_use() {
 
 void test_mmap_use() {
 	{ // Normal case
-		void *data = mmap_use(ARENA_SIZE);
+		reset();
+		void *data = mmap_use(ARENA_SIZE * 10);
 		ASSERT(data);
 		ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
 		ASSERT(ptr->state == VALID);
-		ASSERT(ptr->size == ARENA_SIZE);
+		ASSERT(ptr->size == ARENA_SIZE * 10);
 		ASSERT(ptr->data == data);
+		ASSERT(munmap(PTR(data), TOTAL_SIZE(ARENA_SIZE * 10)) != -1);
 	}
 	{ // size 0
 		void *data = mmap_use(0);
@@ -306,11 +308,24 @@ void test_alloc_new() {
 		int *data2 = alloc_new(sizeof(int));
 		ASSERT(data2);
 		ASSERT(!g_free_ptr_tails[FREE_PTR_INDEX(sizeof(int))]);
+	} 
+	{ // Normal case: use arena
+		reset();
+		int *data = alloc_new(sizeof(int));
+		ASSERT(data);
+		ASSERT(g_arena_tail->ptrs_tail == PTR(data));
 	}
-	{ // 
-
+	{ // Normal case: use mmap
+		reset();
+		typedef struct obj {
+			// char buff[ARENA_SIZE + ARENA_SIZE / 2]; // this does not segfault
+			char buff[ARENA_SIZE + ARENA_SIZE]; // this does
+		} obj_t;
+		obj_t *obj = alloc_new(sizeof(obj_t));
+		ASSERT(obj);
 	}
 	{ // size is 0
+		reset();
 		ASSERT(!alloc_new(0));
 	}
 }

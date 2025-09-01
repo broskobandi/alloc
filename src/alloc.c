@@ -10,17 +10,25 @@ pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
 void *alloc_new(size_t size) {
 	if (!size) ERR("size cannot be 0.", NULL);
 	pthread_mutex_lock(&g_mutex);
-	void *ptr = NULL;
-	if (g_free_ptr_tails[FREE_PTR_INDEX(size)]) {
-		ptr = free_ptr_use(size);
-	} else if (TOTAL_SIZE(size) <= ARENA_SIZE) {
-		ptr = arena_use(size);
-	} else {
-		ptr = mmap_use(size);
+	// program still runs here when using ARENA + ARENA as size
+	if (TOTAL_SIZE(size) > ARENA_SIZE) {
+		void *ptr = mmap_use(size);
+		pthread_mutex_unlock(&g_mutex);
+		return ptr;
+	}
+	if (g_free_ptr_tails[FREE_PTR_INDEX(size)] && TOTAL_SIZE(size) <= ARENA_SIZE) {
+		void *ptr = free_ptr_use(size);
+		pthread_mutex_unlock(&g_mutex);
+		return ptr;
+	}
+	// but not here
+	if (!g_free_ptr_tails[FREE_PTR_INDEX(size)] && TOTAL_SIZE(size) <= ARENA_SIZE) {
+		void *ptr = arena_use(size);
+		pthread_mutex_unlock(&g_mutex);
+		return ptr;
 	}
 	pthread_mutex_unlock(&g_mutex);
-	if (!ptr) ERROR_SET("Failed to allocate memory.");
-	return ptr;
+	ERR("Failed to allocate memory.", NULL);
 }
 
 void alloc_del(void *ptr) {
