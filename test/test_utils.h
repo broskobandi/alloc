@@ -3,4 +3,6 @@
 
 #include <test.h>
 
+void test_arena_expand();
+
 #endif

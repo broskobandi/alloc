@@ -2,7 +2,7 @@
 #include <pthread.h>
 
 arena_t g_arena_head;
-arena_t *g_arena_tail;
+arena_t *g_arena_tail = &g_arena_head;
 ptr_t *g_free_ptrs_tail[NUM_ALLOC_SIZES];
 
 pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
