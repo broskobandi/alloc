@@ -98,15 +98,15 @@ void test_arena_use() {
 void test_free_ptr_index() {
 	{ // Normal case
 		arena_reset();
-		ASSERT(free_ptr_index(MIN_ALLOC_SIZE) == 0);
+		ASSERT(FREE_PTR_INDEX(MIN_ALLOC_SIZE) == 0);
 		arena_reset();
-		ASSERT(free_ptr_index(MIN_ALLOC_SIZE * 2) == 1);
+		ASSERT(FREE_PTR_INDEX(MIN_ALLOC_SIZE * 2) == 1);
 		arena_reset();
-		ASSERT(free_ptr_index(MIN_ALLOC_SIZE * 3) == 2);
+		ASSERT(FREE_PTR_INDEX(MIN_ALLOC_SIZE * 3) == 2);
 		arena_reset();
 	}
 	{ // size  0
-		ASSERT(free_ptr_index(0) == (size_t)-1);
+		ASSERT(FREE_PTR_INDEX(0) == (size_t)-1);
 	}
 }
 
@@ -115,8 +115,8 @@ void test_ptr_free() {
 		arena_reset();
 		size_t size1 = MIN_ALLOC_SIZE / 2;
 		size_t size2 = MIN_ALLOC_SIZE * 2;
-		// size_t index1 = free_ptr_index(size1);
-		// size_t index2 = free_ptr_index(size2);
+		// size_t index1 = FREE_PTR_INDEX(size1);
+		// size_t index2 = FREE_PTR_INDEX(size2);
 		void *data1 = arena_use(size1);
 		// void *data2 = arena_use(size1);
 		void *data3 = arena_use(size2);

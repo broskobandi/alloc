@@ -8,11 +8,6 @@
 #include <sys/mman.h>
 #include <string.h>
 
-typedef enum ptr_state {
-	FREE,
-	VALID,
-} ptr_state_t;
-
 #define ARENA_SIZE 1024LU * 4
 #define ROUNDUP(size)\
 	(((size) + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1))
@@ -22,9 +17,17 @@ typedef enum ptr_state {
 	(PTR_ALIGNED_SIZE + ROUNDUP(size))
 #define MIN_ALLOC_SIZE alignof(max_align_t)
 #define NUM_ALLOC_SIZES\
-	((ARENA_SIZE - MIN_ALLOC_SIZE - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE)
+	((ARENA_SIZE - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE)
+#define FREE_PTR_INDEX(size)\
+	(((TOTAL_SIZE((size)) - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE) - 1)
+	
 #define MMAP(size)\
 	mmap(NULL, (size), PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0)
+
+typedef enum ptr_state {
+	FREE,
+	VALID,
+} ptr_state_t;
 
 typedef struct arena arena_t;
 typedef struct ptr ptr_t;
@@ -114,17 +117,12 @@ static inline void *arena_use(size_t size) {
 	OK(g_arena_tail->ptrs_tail->data);
 }
 
-static inline size_t free_ptr_index(size_t size) {
-	if (!size) ERR("size cannto be 0.", (size_t)-1);
-	OK(((TOTAL_SIZE(size) - PTR_ALIGNED_SIZE) / MIN_ALLOC_SIZE) - 1);
-}
-
 #include <stdio.h>
 static inline int ptr_free(void *data) {
 	if (!data) ERR("data cannot be NULL.", 1);
 	ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
 	if (ptr->state != VALID) ERR("Invalid argument.", 1);
-	size_t i = free_ptr_index(ptr->size);
+	size_t i = FREE_PTR_INDEX(ptr->size);
 	printf("%lu\n", ptr->size);
 	if (!g_free_ptr_tails[i]) {
 		g_free_ptr_tails[i] = ptr;
