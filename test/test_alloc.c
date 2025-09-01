@@ -43,3 +43,13 @@ void test_arena_del() {
 		ASSERT(arena_del(g_arena_tail));
 	}
 }
+
+void test_roundup() {
+	{ // Normal case
+		size_t size = alignof(max_align_t) / 2;
+		ASSERT(roundup(size) == alignof(max_align_t));
+	}
+	{ // size 0
+		ASSERT(roundup(0) == (size_t)-1);
+	}
+}

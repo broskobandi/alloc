@@ -75,4 +75,9 @@ static inline int arena_reset() {
 	OK(0);
 }
 
+static inline size_t roundup(size_t size) {
+	if (!size) ERR("size cannot be 0.", (size_t)-1);
+	OK(((size + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1)));
+}
+
 #endif
