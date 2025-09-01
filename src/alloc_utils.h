@@ -80,7 +80,7 @@ static inline int arena_del(arena_t *arena) {
 	OK(0);
 }
 
-static inline int arena_reset() {
+static inline int reset() {
 	while (g_arena_tail->prev) {
 		g_arena_tail = g_arena_tail->prev;
 		if (munmap(g_arena_tail->next, sizeof(arena_t)) == -1)
@@ -88,6 +88,7 @@ static inline int arena_reset() {
 	}
 	memset(&g_arena_head, 0, sizeof(arena_t));
 	g_arena_tail = &g_arena_head;
+	memset(g_free_ptr_tails, 0, NUM_ALLOC_SIZES * sizeof(ptr_t*));
 	OK(0);
 }
 
@@ -116,13 +117,11 @@ static inline void *arena_use(size_t size) {
 	OK(g_arena_tail->ptrs_tail->data);
 }
 
-#include <stdio.h>
 static inline int ptr_free(void *data) {
 	if (!data) ERR("data cannot be NULL.", 1);
 	ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
 	if (ptr->state != VALID) ERR("Invalid argument.", 1);
 	size_t i = FREE_PTR_INDEX(ptr->size);
-	// printf("%lu\n", ptr->size);
 	if (!g_free_ptr_tails[i]) {
 		g_free_ptr_tails[i] = ptr;
 		ptr->prev_free = NULL;
@@ -136,8 +135,21 @@ static inline int ptr_free(void *data) {
 	OK(0);
 }
 
-// static inline void *free_ptr_use(size_t size) {
-//
-// }
+static inline void *free_ptr_use(size_t size) {
+	if (!size) ERR("size cannot be 0.", NULL);
+	ptr_t *ptr = g_free_ptr_tails[FREE_PTR_INDEX(size)];
+	if (!g_free_ptr_tails[FREE_PTR_INDEX(size)])
+		ERR("No matching free pointer found.", NULL);
+	if (ptr->prev_free) {
+		ptr->prev_free->next_free = NULL;
+		g_free_ptr_tails[FREE_PTR_INDEX(size)] = ptr->prev_free;
+	} else {
+		g_free_ptr_tails[FREE_PTR_INDEX(size)] = NULL;
+	}
+	ptr->next_free = NULL;
+	ptr->prev_free = NULL;
+	ptr->state = VALID;
+	OK(ptr);
+}
 
 #endif

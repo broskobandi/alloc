@@ -19,7 +19,7 @@ void test_arena_reset() {
 		ASSERT(!arena_expand());
 		ASSERT(!arena_expand());
 		ASSERT(!arena_expand());
-		ASSERT(!arena_reset());
+		ASSERT(!reset());
 		ASSERT(g_arena_tail == &g_arena_head);
 		ASSERT(!g_arena_head.next);
 	}
@@ -27,7 +27,7 @@ void test_arena_reset() {
 
 void test_arena_del() {
 	{ // Normal case
-		ASSERT(!arena_reset());
+		ASSERT(!reset());
 		ASSERT(!arena_expand());
 		ASSERT(!arena_expand());
 		ASSERT(!arena_del(g_arena_head.next));
@@ -35,11 +35,11 @@ void test_arena_del() {
 		ASSERT(g_arena_tail->prev == &g_arena_head);
 	}
 	{ // arena NULL
-		ASSERT(!arena_reset());
+		ASSERT(!reset());
 		ASSERT(arena_del(NULL));
 	}
 	{ // arena is head
-		ASSERT(!arena_reset());
+		ASSERT(!reset());
 		ASSERT(arena_del(g_arena_tail));
 	}
 }
@@ -67,7 +67,7 @@ void test_total_size() {
 
 void test_arena_use() {
 	{ // Normal case
-		arena_reset();
+		reset();
 		size_t size1 = ARENA_SIZE / 32;
 		size_t size2 = ARENA_SIZE / 16;
 		void *data1 = arena_use(size1);
@@ -102,30 +102,30 @@ void test_arena_use() {
 		ASSERT(ptr4->prev_valid == ptr3);
 	}
 	{ // size 0
-		arena_reset();
+		reset();
 		ASSERT(!arena_use(0));
 	}
 	{ // size too big
-		arena_reset();
+		reset();
 		ASSERT(!arena_use(ARENA_SIZE * 2));
 	}
 }
 
 void test_free_ptr_index() {
 	{ // Normal case
-		arena_reset();
+		reset();
 		ASSERT(FREE_PTR_INDEX(MIN_ALLOC_SIZE) == 0);
-		arena_reset();
+		reset();
 		ASSERT(FREE_PTR_INDEX(MIN_ALLOC_SIZE * 2) == 1);
-		arena_reset();
+		reset();
 		ASSERT(FREE_PTR_INDEX(MIN_ALLOC_SIZE * 3) == 2);
-		arena_reset();
+		reset();
 	}
 }
 
 void test_ptr_free() {
 	{ // Normal case
-		arena_reset();
+		reset();
 		size_t size1 = MIN_ALLOC_SIZE / 2;
 		size_t size2 = MIN_ALLOC_SIZE * 2;
 		size_t index1 = FREE_PTR_INDEX(size1);
@@ -148,16 +148,38 @@ void test_ptr_free() {
 		ASSERT(g_free_ptr_tails[index2]->prev_free == ptr3);
 		ASSERT(!g_free_ptr_tails[index1]->next_free)
 		ASSERT(!g_free_ptr_tails[index2]->next_free)
+		ASSERT(ptr1->state == FREE);
+		ASSERT(ptr2->state == FREE);
+		ASSERT(ptr3->state == FREE);
+		ASSERT(ptr4->state == FREE);
 	}
 	{ // Data NULL
-		arena_reset();
+		reset();
 		ASSERT(ptr_free(NULL));
 	}
 	{ // Invalid argument
-		arena_reset();
+		reset();
 		int x = 5;
 		void *dummy = &x;
 		ASSERT(ptr_free(dummy));
 	}
 }
 
+void test_free_ptr_use() {
+	{ // Normal case
+		reset();
+		size_t size = ARENA_SIZE / 32;
+		void *data = arena_use(size);
+		ASSERT(!ptr_free(data));
+		ASSERT(free_ptr_use(size));
+	}
+	{ // size 0
+		reset();
+		ASSERT(!free_ptr_use(0));
+	}
+	{ // no matching free pointer
+		reset();
+		size_t size = ARENA_SIZE / 32;
+		ASSERT(!free_ptr_use(size));
+	}
+}

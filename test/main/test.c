@@ -12,6 +12,7 @@ int main(void) {
 	test_arena_use();
 	test_free_ptr_index();
 	test_ptr_free();
+	test_free_ptr_use();
 
 	test_print_results();
 	return 0;
