@@ -53,3 +53,9 @@ void test_roundup() {
 		ASSERT(roundup(0) == (size_t)-1);
 	}
 }
+
+void test_ptr_aligned_size() {
+	{ // Normal case
+		ASSERT(roundup(sizeof(ptr_t)) == PTR_ALIGNED_SIZE);
+	}
+}
