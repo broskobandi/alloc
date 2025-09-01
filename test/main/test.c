@@ -8,6 +8,7 @@ int main(void) {
 	test_arena_del();
 	test_roundup();
 	test_ptr_aligned_size();
+	test_total_size();
 
 	test_print_results();
 	return 0;

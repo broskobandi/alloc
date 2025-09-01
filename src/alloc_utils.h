@@ -80,4 +80,14 @@ static inline size_t roundup(size_t size) {
 	OK(((size + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1)));
 }
 
+static inline size_t total_size(size_t size) {
+	if (!size) ERR("size cannot be 0.", (size_t)-1);
+	OK(PTR_ALIGNED_SIZE + roundup(size));
+}
+
+// static inline void *use_arena(size_t size) {
+// 	if (!size) ERR("size cannot be 0.", NULL);
+// 	if (!size) ERR("size cannot be 0.", NULL);
+// }
+
 #endif

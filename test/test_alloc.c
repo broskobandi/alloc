@@ -58,4 +58,18 @@ void test_ptr_aligned_size() {
 	{ // Normal case
 		ASSERT(roundup(sizeof(ptr_t)) == PTR_ALIGNED_SIZE);
 	}
+	{ // size 0
+		ASSERT(roundup(0) == (size_t)-1);
+	}
+}
+
+void test_total_size() {
+	{ // Normal case
+		size_t size = alignof(max_align_t) / 2;
+		size_t exp = roundup(size) + PTR_ALIGNED_SIZE;
+		ASSERT(total_size(size) == exp);
+	}
+	{ // Normal case
+		ASSERT(total_size(0) == (size_t)-1);
+	}
 }
