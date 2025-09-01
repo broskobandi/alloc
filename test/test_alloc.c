@@ -101,6 +101,13 @@ void test_arena_use() {
 		ASSERT(ptr3->next_valid == ptr4);
 		ASSERT(ptr4->prev_valid == ptr3);
 	}
+	{ // Normal case: expand arena
+		reset();
+		g_arena_tail->offset = ARENA_SIZE - MIN_ALLOC_SIZE / 2;
+		void *data = arena_use(MIN_ALLOC_SIZE);
+		ASSERT(data);
+		ASSERT(g_arena_tail->prev == &g_arena_head);
+	}
 	{ // size 0
 		reset();
 		ASSERT(!arena_use(0));
