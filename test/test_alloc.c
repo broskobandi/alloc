@@ -173,6 +173,19 @@ void test_ptr_free() {
 		ASSERT(g_arena_head.next->prev);
 		ASSERT(!ptr_free(data));
 		ASSERT(g_arena_tail == &g_arena_head);
+		reset();
+		ASSERT(g_arena_tail == &g_arena_head);
+		ASSERT(!arena_expand());
+		data = arena_use(MIN_ALLOC_SIZE);
+		ASSERT(data);
+		ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
+		ASSERT(!arena_expand());
+		ASSERT(ptr->arena == g_arena_head.next);
+		ASSERT(g_arena_head.next == ptr->arena);
+		ASSERT(g_arena_tail->prev == ptr->arena);
+		ASSERT(!ptr_free(data));
+		ASSERT(g_arena_tail == g_arena_head.next);
+		ASSERT(g_arena_tail->prev == &g_arena_head);
 	}
 	{ // Data NULL
 		reset();
