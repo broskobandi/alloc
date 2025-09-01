@@ -9,5 +9,6 @@ void test_arena_del();
 void test_roundup();
 void test_ptr_aligned_size();
 void test_total_size();
+void test_use_arena();
 
 #endif

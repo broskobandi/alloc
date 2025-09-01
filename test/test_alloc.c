@@ -73,3 +73,24 @@ void test_total_size() {
 		ASSERT(total_size(0) == (size_t)-1);
 	}
 }
+
+void test_use_arena() {
+	{ // Normal case
+		size_t size = 5;
+		void *data = use_arena(size);
+		ASSERT(data);
+		ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
+		ASSERT(ptr->size == size);
+		ASSERT(ptr->is_valid);
+
+		size_t size2 = size * 2;
+		void *data2 = use_arena(size2);
+		ASSERT(data2);
+		ptr_t *ptr2 = (ptr_t*)((unsigned char*)data2 - PTR_ALIGNED_SIZE);
+		ASSERT(ptr2->size == size2);
+		ASSERT(ptr2->is_valid);
+
+		ASSERT(ptr2->prev == ptr);
+		ASSERT(ptr->next == ptr2);
+	}
+}

@@ -21,7 +21,7 @@ typedef struct arena arena_t;
 typedef struct ptr ptr_t;
  
 struct ptr {
-	void *ptr;
+	void *data;
 	size_t size;
 	arena_t *arena;
 	bool is_valid;
@@ -31,6 +31,7 @@ struct ptr {
 
 struct arena {
 	alignas(max_align_t) unsigned char buff[ARENA_SIZE];
+	size_t offset;
 	ptr_t *ptrs_tail;
 	arena_t *next;
 	arena_t *prev;
@@ -46,6 +47,8 @@ static inline int arena_expand() {
 	g_arena_tail->next->prev = g_arena_tail;
 	g_arena_tail = g_arena_tail->next;
 	g_arena_tail->next = NULL;
+	g_arena_tail->offset = 0;
+	g_arena_tail->ptrs_tail = NULL;
 	OK(0);
 }
 
@@ -85,9 +88,27 @@ static inline size_t total_size(size_t size) {
 	OK(PTR_ALIGNED_SIZE + roundup(size));
 }
 
-// static inline void *use_arena(size_t size) {
-// 	if (!size) ERR("size cannot be 0.", NULL);
-// 	if (!size) ERR("size cannot be 0.", NULL);
-// }
+#include <stdio.h>
+static inline void *use_arena(size_t size) {
+	if (!size) ERR("size cannot be 0.", NULL);
+	if (total_size(size) > ARENA_SIZE) ERR("size is too big.", NULL);
+	if (g_arena_tail->offset + total_size(size) > ARENA_SIZE)
+		if (arena_expand()) ERR("Failed to expand arena.", NULL);
+	if (!g_arena_tail->ptrs_tail) {
+		g_arena_tail->ptrs_tail = (ptr_t*)&g_arena_tail->buff[g_arena_tail->offset];
+	} else {
+		g_arena_tail->ptrs_tail->next = (ptr_t*)&g_arena_tail->buff[g_arena_tail->offset];
+		g_arena_tail->ptrs_tail->next->prev = g_arena_tail->ptrs_tail;
+		g_arena_tail->ptrs_tail = g_arena_tail->ptrs_tail->next;
+	}
+	g_arena_tail->ptrs_tail->next = NULL;
+	g_arena_tail->ptrs_tail->size = size;
+	g_arena_tail->ptrs_tail->is_valid = true;
+	g_arena_tail->ptrs_tail->arena = g_arena_tail;
+	g_arena_tail->ptrs_tail->data = 
+		(unsigned char*)g_arena_tail->ptrs_tail + PTR_ALIGNED_SIZE;
+	g_arena_tail->offset = total_size(size);
+	OK(g_arena_tail->ptrs_tail->data);
+}
 
 #endif

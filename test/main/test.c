@@ -9,6 +9,7 @@ int main(void) {
 	test_roundup();
 	test_ptr_aligned_size();
 	test_total_size();
+	test_use_arena();
 
 	test_print_results();
 	return 0;
