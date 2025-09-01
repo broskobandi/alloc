@@ -318,14 +318,24 @@ void test_alloc_new() {
 	{ // Normal case: use mmap
 		reset();
 		typedef struct obj {
-			// char buff[ARENA_SIZE + ARENA_SIZE / 2]; // this does not segfault
-			char buff[ARENA_SIZE + ARENA_SIZE]; // this does
+			char buff[ARENA_SIZE * 10];
 		} obj_t;
 		obj_t *obj = alloc_new(sizeof(obj_t));
 		ASSERT(obj);
+		ASSERT(munmap(PTR(obj), TOTAL_SIZE(ARENA_SIZE * 10)) != -1);
 	}
 	{ // size is 0
 		reset();
 		ASSERT(!alloc_new(0));
 	}
 }
+
+void test_alloc_del() {
+	{ // Normal case
+		void *data = alloc_new(MIN_ALLOC_SIZE);
+		alloc_del(data);
+		ASSERT(g_free_ptr_tails[FREE_PTR_INDEX(MIN_ALLOC_SIZE)]->data == data);
+	}
+}
+
+

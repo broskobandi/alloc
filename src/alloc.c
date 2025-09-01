@@ -10,7 +10,6 @@ pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
 void *alloc_new(size_t size) {
 	if (!size) ERR("size cannot be 0.", NULL);
 	pthread_mutex_lock(&g_mutex);
-	// program still runs here when using ARENA + ARENA as size
 	if (TOTAL_SIZE(size) > ARENA_SIZE) {
 		void *ptr = mmap_use(size);
 		pthread_mutex_unlock(&g_mutex);
@@ -21,7 +20,6 @@ void *alloc_new(size_t size) {
 		pthread_mutex_unlock(&g_mutex);
 		return ptr;
 	}
-	// but not here
 	if (!g_free_ptr_tails[FREE_PTR_INDEX(size)] && TOTAL_SIZE(size) <= ARENA_SIZE) {
 		void *ptr = arena_use(size);
 		pthread_mutex_unlock(&g_mutex);

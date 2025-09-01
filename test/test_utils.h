@@ -24,5 +24,6 @@ void test_mmap_use();
  * */
 
 void test_alloc_new();
+void test_alloc_del();
 
 #endif

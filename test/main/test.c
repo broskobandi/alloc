@@ -16,6 +16,7 @@ int main(void) {
 	test_mmap_use();
 
 	test_alloc_new();
+	test_alloc_del();
 
 	test_print_results();
 	return 0;
