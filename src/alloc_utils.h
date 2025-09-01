@@ -53,8 +53,8 @@ static inline int arena_del(arena_t *arena) {
 	if (!arena) ERR("arena cannot be NULL.", 1);
 	if (arena == &g_arena_head) ERR("arena head cannot be deleted.", 1);
 	if (arena->next) {
-		arena->prev->next = arena->next->prev;
-		arena->next->prev = arena->prev->next;
+		arena->prev->next = arena->next;
+		arena->next->prev = arena->prev;
 		if (munmap(arena, sizeof(arena_t))) ERR("Failed to unmap arena.", 1);
 	} else {
 		arena = arena->prev;

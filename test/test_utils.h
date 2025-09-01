@@ -5,5 +5,6 @@
 
 void test_arena_expand();
 void test_arena_reset();
+void test_arena_del();
 
 #endif

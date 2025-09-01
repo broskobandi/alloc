@@ -27,12 +27,19 @@ void test_arena_reset() {
 
 void test_arena_del() {
 	{ // Normal case
-
+		ASSERT(!arena_reset());
+		ASSERT(!arena_expand());
+		ASSERT(!arena_expand());
+		ASSERT(!arena_del(g_arena_head.next));
+		ASSERT(g_arena_head.next == g_arena_tail);
+		ASSERT(g_arena_tail->prev == &g_arena_head);
 	}
 	{ // arena NULL
-
+		ASSERT(!arena_reset());
+		ASSERT(arena_del(NULL));
 	}
 	{ // arena is head
-
+		ASSERT(!arena_reset());
+		ASSERT(arena_del(g_arena_tail));
 	}
 }
