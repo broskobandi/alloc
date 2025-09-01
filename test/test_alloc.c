@@ -168,10 +168,45 @@ void test_ptr_free() {
 void test_free_ptr_use() {
 	{ // Normal case
 		reset();
-		size_t size = ARENA_SIZE / 32;
-		void *data = arena_use(size);
-		ASSERT(!ptr_free(data));
-		ASSERT(free_ptr_use(size));
+		size_t size1 = MIN_ALLOC_SIZE / 2;
+		size_t size2 = MIN_ALLOC_SIZE * 2;
+		void *data1 = arena_use(size1);
+		void *data2 = arena_use(size1);
+		void *data3 = arena_use(size2);
+		void *data4 = arena_use(size2);
+		ptr_t *ptr1 = (ptr_t*)((unsigned char*)data1 - PTR_ALIGNED_SIZE);
+		ptr_t *ptr2 = (ptr_t*)((unsigned char*)data2 - PTR_ALIGNED_SIZE);
+		ptr_t *ptr3 = (ptr_t*)((unsigned char*)data3 - PTR_ALIGNED_SIZE);
+		ptr_t *ptr4 = (ptr_t*)((unsigned char*)data4 - PTR_ALIGNED_SIZE);
+		ASSERT(!ptr_free(data1));
+		ASSERT(!ptr_free(data2));
+		ASSERT(!ptr_free(data3));
+		ASSERT(!ptr_free(data4));
+
+		ptr_t *ptr5 = free_ptr_use(size1);
+		ptr_t *ptr6 = free_ptr_use(size1);
+		ptr_t *ptr7 = free_ptr_use(size2);
+		ptr_t *ptr8 = free_ptr_use(size2);
+		ASSERT(ptr5 == ptr2);
+		ASSERT(ptr6 == ptr1);
+		ASSERT(ptr7 == ptr4);
+		ASSERT(ptr8 == ptr3);
+		ASSERT(ptr5->state == VALID);
+		ASSERT(ptr6->state == VALID);
+		ASSERT(ptr7->state == VALID);
+		ASSERT(ptr8->state == VALID);
+		ASSERT(!ptr5->next_free);
+		ASSERT(!ptr6->next_free);
+		ASSERT(!ptr7->next_free);
+		ASSERT(!ptr8->next_free);
+		ASSERT(!ptr5->prev_free);
+		ASSERT(!ptr6->prev_free);
+		ASSERT(!ptr7->prev_free);
+		ASSERT(!ptr8->prev_free);
+		ASSERT(ptr5->size == size1);
+		ASSERT(ptr6->size == size1);
+		ASSERT(ptr7->size == size2);
+		ASSERT(ptr8->size == size2);
 	}
 	{ // size 0
 		reset();
