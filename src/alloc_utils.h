@@ -84,6 +84,7 @@ static inline int arena_del(arena_t *arena) {
 }
 
 static inline int reset() {
+	error_reset();
 	while (g_arena_tail->prev) {
 		g_arena_tail = g_arena_tail->prev;
 		if (munmap(g_arena_tail->next, sizeof(arena_t)) == -1)
@@ -124,6 +125,11 @@ static inline int ptr_free(void *data) {
 	if (!data) ERR("data cannot be NULL.", 1);
 	ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
 	if (ptr->state != VALID) ERR("Invalid argument.", 1);
+	if (!ptr->arena) {
+		if (munmap(ptr, TOTAL_SIZE(ptr->size)) == -1)
+			ERR("Failed to unmap memory with munmap().", 1);
+		OK(0);
+	}
 	if (
 		!ptr->arena->ptrs_tail->prev_valid &&
 		ptr->arena->prev &&

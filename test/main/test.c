@@ -15,6 +15,8 @@ int main(void) {
 	test_free_ptr_use();
 	test_mmap_use();
 
+	test_alloc_new();
+
 	test_print_results();
 	return 0;
 }

@@ -1,6 +1,10 @@
 #include "test_utils.h"
 #include "alloc_utils.h"
 
+/**
+ * alloc_utils.
+ * */
+
 void test_arena_expand() {
 	{ // Normal case
 		ASSERT(!g_arena_head.next);
@@ -187,6 +191,13 @@ void test_ptr_free() {
 		ASSERT(g_arena_tail == g_arena_head.next);
 		ASSERT(g_arena_tail->prev == &g_arena_head);
 	}
+	{ // Normal case: munmap
+		reset();
+		void *data = mmap_use(ARENA_SIZE * 2);
+		ASSERT(data);
+		ASSERT(!PTR(data)->arena);
+		ASSERT(!ptr_free(data));
+	}
 	{ // Data NULL
 		reset();
 		ASSERT(ptr_free(NULL));
@@ -273,5 +284,33 @@ void test_mmap_use() {
 	{ // size too small
 		void *data = mmap_use(MIN_ALLOC_SIZE);
 		ASSERT(!data);
+	}
+}
+
+/** 
+ * alloc.c
+ * */
+
+void test_alloc_new() {
+	{ // Normal case
+		reset();
+		int *data = alloc_new(sizeof(int));
+		ASSERT(data);
+	}
+	{ // Normal case: use free list
+		reset();
+		int *data = alloc_new(sizeof(int));
+		ASSERT(!g_free_ptr_tails[FREE_PTR_INDEX(sizeof(int))]);
+		ASSERT(!ptr_free(data));
+		ASSERT(g_free_ptr_tails[FREE_PTR_INDEX(sizeof(int))]);
+		int *data2 = alloc_new(sizeof(int));
+		ASSERT(data2);
+		ASSERT(!g_free_ptr_tails[FREE_PTR_INDEX(sizeof(int))]);
+	}
+	{ // 
+
+	}
+	{ // size is 0
+		ASSERT(!alloc_new(0));
 	}
 }
