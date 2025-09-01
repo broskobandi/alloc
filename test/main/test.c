@@ -4,6 +4,7 @@ TEST_INIT;
 
 int main(void) {
 	test_arena_expand();
+	test_arena_reset();
 
 	test_print_results();
 	return 0;

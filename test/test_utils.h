@@ -4,5 +4,6 @@
 #include <test.h>
 
 void test_arena_expand();
+void test_arena_reset();
 
 #endif
