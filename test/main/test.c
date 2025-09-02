@@ -17,6 +17,7 @@ int main(void) {
 
 	test_alloc_new();
 	test_alloc_del();
+	// test_alloc_resize();
 
 	test_print_results();
 	return 0;

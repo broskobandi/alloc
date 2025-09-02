@@ -332,10 +332,27 @@ void test_alloc_new() {
 
 void test_alloc_del() {
 	{ // Normal case
+		reset();
 		void *data = alloc_new(MIN_ALLOC_SIZE);
 		alloc_del(data);
 		ASSERT(g_free_ptr_tails[FREE_PTR_INDEX(MIN_ALLOC_SIZE)]->data == data);
 	}
 }
 
-
+// void test_alloc_resize() {
+// 	{ // Normal case
+// 		reset();
+// 		int *data1 = alloc_new(sizeof(int));
+// 		*data1 = 5;
+// 		int *data2 = alloc_resize(data1, sizeof(int) * 2);
+// 		ASSERT(data2);
+// 	}
+// 	{ // size is 0
+// 		int x = 5;
+// 		void *ptr = &x;
+// 		ASSERT(!alloc_resize(ptr, 0));
+// 	}
+// 	{ // ptr is NULL
+// 		ASSERT(!alloc_resize(NULL, 4));
+// 	}
+// }
