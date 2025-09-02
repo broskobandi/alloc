@@ -1,1 +1,3 @@
 - alloc_del to set the pointer to NULL.
+- fix linking bug
+- improve performance
