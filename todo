@@ -1,1 +1,1 @@
-- find another name for next_valid and prev_valid in the ptr struct
+- alloc_del to set the pointer to NULL.
