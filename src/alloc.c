@@ -54,7 +54,7 @@ _Thread_local ptr_t *g_free_ptr_tails[NUM_ALLOC_SIZES] = {0};
  * \return A pointer to the newly allocated memory or NULL on failure. 
  * It sets errno on failure. */
 void *alloc_new(size_t size) {
-	if (!size) ERR("size cannot be 0.", NULL);
+	if (!size) RET_ERR("size cannot be 0.", NULL);
 	if (!g_arena_tail) g_arena_tail = &g_arena_head;
 	// pthread_mutex_lock(&g_mutex);
 	if (TOTAL_SIZE(size) > ARENA_SIZE) {
@@ -73,14 +73,14 @@ void *alloc_new(size_t size) {
 		return ptr;
 	}
 	// pthread_mutex_unlock(&g_mutex);
-	ERR("Failed to allocate memory.", NULL);
+	RET_ERR("Failed to allocate memory.", NULL);
 }
 
 /** Deallocates a block of memory.
  * \param ptr Pointer to the memory to be deallocated.
  * It sets errno on failure. */
 void alloc_del(void *ptr) {
-	if (!ptr) ERR("ptr cannot be NULL.");
+	if (!ptr) RET_ERR("ptr cannot be NULL.");
 	// pthread_mutex_lock(&g_mutex);
 	if (ptr_free(ptr)) ERROR_SET("Failed to free pointer.");
 	// pthread_mutex_unlock(&g_mutex);
@@ -93,8 +93,8 @@ void alloc_del(void *ptr) {
  * \return 0 on success and 1 on failure.
  * It sets errno on failure. */
 int alloc_resize(void **ptr, size_t size) {
-	if (!size) ERR("size cannot be 0.", 1);
-	if (!ptr || !*ptr) ERR("ptr cannot be NULL.", 1);
+	if (!size) RET_ERR("size cannot be 0.", 1);
+	if (!ptr || !*ptr) RET_ERR("ptr cannot be NULL.", 1);
 	void *new_ptr = alloc_new(size);
 	if (new_ptr) {
 		size_t size_to_copy =
@@ -102,8 +102,8 @@ int alloc_resize(void **ptr, size_t size) {
 			size : PTR(ptr)->size;
 		memcpy(new_ptr, *ptr, size_to_copy);
 		*ptr = new_ptr;
-		OK(0);
+		RET_OK(0);
 	} else {
-		ERR("Failed to allocate new memory.", 1);
+		RET_ERR("Failed to allocate new memory.", 1);
 	}
 }

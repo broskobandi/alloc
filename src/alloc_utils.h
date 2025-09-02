@@ -114,32 +114,32 @@ extern _Thread_local ptr_t *g_free_ptr_tails[NUM_ALLOC_SIZES];
  * \return 0 on success or 1 on failure. */
 static inline int arena_expand() {
 	g_arena_tail->next = (arena_t*)MMAP(sizeof(arena_t));
-	if (!g_arena_tail->next) ERR("Failed to allocate new arena with mmap.", 1);
+	if (!g_arena_tail->next) RET_ERR("Failed to allocate new arena with mmap.", 1);
 	g_arena_tail->next->prev = g_arena_tail;
 	g_arena_tail = g_arena_tail->next;
 	g_arena_tail->next = NULL;
 	g_arena_tail->offset = 0;
 	g_arena_tail->ptrs_tail = NULL;
-	OK(0);
+	RET_OK(0);
 }
 
 /** Removes an arena node from the linked list.
  * \param arena The arena node to be deleted.
  * \return 0 on success or 1 on failure. */
 static inline int arena_del(arena_t *arena) {
-	if (!arena) ERR("arena cannot be NULL.", 1);
-	if (arena == &g_arena_head) ERR("arena head cannot be deleted.", 1);
+	if (!arena) RET_ERR("arena cannot be NULL.", 1);
+	if (arena == &g_arena_head) RET_ERR("arena head cannot be deleted.", 1);
 	if (arena->prev && arena->next) {
 		arena->prev->next = arena->next;
 		arena->next->prev = arena->prev;
-		if (munmap(arena, sizeof(arena_t))) ERR("Failed to unmap arena.", 1);
+		if (munmap(arena, sizeof(arena_t))) RET_ERR("Failed to unmap arena.", 1);
 	} else if (!arena->next) {
 		g_arena_tail = arena->prev;
 		if (munmap(g_arena_tail->next, sizeof(arena_t)))
-			ERR("Failed to unmap arena.", 1);
+			RET_ERR("Failed to unmap arena.", 1);
 		g_arena_tail->next = NULL;
 	}
-	OK(0);
+	RET_OK(0);
 }
 
 /** Resets all global variables. Unmaps heap memory.
@@ -149,22 +149,22 @@ static inline int reset() {
 	while (g_arena_tail && g_arena_tail->prev) {
 		g_arena_tail = g_arena_tail->prev;
 		if (munmap(g_arena_tail->next, sizeof(arena_t)) == -1)
-			ERR("Failed to unmap arena.", 1);
+			RET_ERR("Failed to unmap arena.", 1);
 	}
 	memset(&g_arena_head, 0, sizeof(arena_t));
 	g_arena_tail = &g_arena_head;
 	memset(g_free_ptr_tails, 0, sizeof(g_free_ptr_tails));
-	OK(0);
+	RET_OK(0);
 }
 
 /** Returns a pointer to a memory block allocated in the arena.
  * \param size The size of the block to be allocated. 
  * \return The pointer to the allocated data or NULL on failure. */
 static inline void *arena_use(size_t size) {
-	if (!size) ERR("size cannot be 0.", NULL);
-	if (TOTAL_SIZE(size) > ARENA_SIZE) ERR("size is too big.", NULL);
+	if (!size) RET_ERR("size cannot be 0.", NULL);
+	if (TOTAL_SIZE(size) > ARENA_SIZE) RET_ERR("size is too big.", NULL);
 	if (g_arena_tail->offset + TOTAL_SIZE(size) > ARENA_SIZE)
-		if (arena_expand()) ERR("Failed to expand arena.", NULL);
+		if (arena_expand()) RET_ERR("Failed to expand arena.", NULL);
 	if (!g_arena_tail->ptrs_tail) {
 		g_arena_tail->ptrs_tail = (ptr_t*)&g_arena_tail->buff[g_arena_tail->offset];
 	} else {
@@ -182,20 +182,20 @@ static inline void *arena_use(size_t size) {
 	g_arena_tail->ptrs_tail->data = 
 		(unsigned char*)g_arena_tail->ptrs_tail + PTR_ALIGNED_SIZE;
 	g_arena_tail->offset += TOTAL_SIZE(size);
-	OK(g_arena_tail->ptrs_tail->data);
+	RET_OK(g_arena_tail->ptrs_tail->data);
 }
 
 /** Marks a pointer and its associated data free.
  * \param data The poiter to the data to be freed.
  * \return 0 on sucecss or 1 on failure. */
 static inline int ptr_free(void *data) {
-	if (!data) ERR("data cannot be NULL.", 1);
+	if (!data) RET_ERR("data cannot be NULL.", 1);
 	ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
-	if (ptr->state != VALID) ERR("Invalid argument.", 1);
+	if (ptr->state != VALID) RET_ERR("Invalid argument.", 1);
 	if (!ptr->arena) {
 		if (munmap(ptr, TOTAL_SIZE(ptr->size)) == -1)
-			ERR("Failed to unmap memory with munmap().", 1);
-		OK(0);
+			RET_ERR("Failed to unmap memory with munmap().", 1);
+		RET_OK(0);
 	}
 	if (
 		!ptr->arena->ptrs_tail->prev_valid &&
@@ -203,7 +203,7 @@ static inline int ptr_free(void *data) {
 		ptr->arena->prev->offset < ARENA_SIZE - MIN_ALLOC_SIZE - PTR_ALIGNED_SIZE
 	) {
 		arena_del(ptr->arena);
-		OK(0);
+		RET_OK(0);
 	}
 	size_t i = FREE_PTR_INDEX(ptr->size);
 	if (!g_free_ptr_tails[i]) {
@@ -216,17 +216,17 @@ static inline int ptr_free(void *data) {
 	}
 	g_free_ptr_tails[i]->next_free = NULL;
 	g_free_ptr_tails[i]->state = FREE;
-	OK(0);
+	RET_OK(0);
 }
 
 /** Reuses a pointer and its associated data that was previously marked free.
  * \param size The size of the memory block to be reused. 
  * \return A pointer to the memory block or NULL on failure. */
 static inline void *free_ptr_use(size_t size) {
-	if (!size) ERR("size cannot be 0.", NULL);
+	if (!size) RET_ERR("size cannot be 0.", NULL);
 	ptr_t *ptr = g_free_ptr_tails[FREE_PTR_INDEX(size)];
 	if (!g_free_ptr_tails[FREE_PTR_INDEX(size)])
-		ERR("No matching free pointer found.", NULL);
+		RET_ERR("No matching free pointer found.", NULL);
 	if (ptr->prev_free) {
 		ptr->prev_free->next_free = NULL;
 		g_free_ptr_tails[FREE_PTR_INDEX(size)] = ptr->prev_free;
@@ -236,24 +236,24 @@ static inline void *free_ptr_use(size_t size) {
 	ptr->next_free = NULL;
 	ptr->prev_free = NULL;
 	ptr->state = VALID;
-	OK(ptr->data);
+	RET_OK(ptr->data);
 }
 
 /** Allocates a block of memory in the heap using mmap().
  * \param size The size of the memory block to be allocated. 
  * \return A pointer to the memory block or NULL on failure. */
 static inline void *mmap_use(size_t size) {
-	if (!size) ERR("size cannot be 0.", NULL);
-	if (TOTAL_SIZE(size) <= ARENA_SIZE) ERR("size is too small.", NULL);
+	if (!size) RET_ERR("size cannot be 0.", NULL);
+	if (TOTAL_SIZE(size) <= ARENA_SIZE) RET_ERR("size is too small.", NULL);
 	ptr_t *ptr = (ptr_t*)MMAP(TOTAL_SIZE(size));
-	if (!ptr) ERR("Failed to allocate ptr with mmap().", NULL);
+	if (!ptr) RET_ERR("Failed to allocate ptr with mmap().", NULL);
 	ptr->data = (unsigned char*)ptr + PTR_ALIGNED_SIZE;
 	ptr->state = VALID;
 	ptr->arena = NULL;
 	ptr->prev_valid = NULL;
 	ptr->next_valid = NULL;
 	ptr->size = size;
-	OK(ptr->data);
+	RET_OK(ptr->data);
 }
 
 #endif
