@@ -71,7 +71,7 @@ void test_total_size() {
 
 void test_arena_use() {
 	{ // Normal case
-		reset();
+		ASSERT(!reset());
 		size_t size1 = ARENA_SIZE / 32;
 		size_t size2 = ARENA_SIZE / 16;
 		void *data1 = arena_use(size1);
@@ -106,37 +106,37 @@ void test_arena_use() {
 		ASSERT(ptr4->prev_valid == ptr3);
 	}
 	{ // Normal case: expand arena
-		reset();
+		ASSERT(!reset());
 		g_arena_tail->offset = ARENA_SIZE - MIN_ALLOC_SIZE / 2;
 		void *data = arena_use(MIN_ALLOC_SIZE);
 		ASSERT(data);
 		ASSERT(g_arena_tail->prev == &g_arena_head);
 	}
 	{ // size 0
-		reset();
+		ASSERT(!reset());
 		ASSERT(!arena_use(0));
 	}
 	{ // size too big
-		reset();
+		ASSERT(!reset());
 		ASSERT(!arena_use(ARENA_SIZE * 2));
 	}
 }
 
 void test_free_ptr_index() {
 	{ // Normal case
-		reset();
+		ASSERT(!reset());
 		ASSERT(FREE_PTR_INDEX(MIN_ALLOC_SIZE) == 0);
-		reset();
+		ASSERT(!reset());;
 		ASSERT(FREE_PTR_INDEX(MIN_ALLOC_SIZE * 2) == 1);
-		reset();
+		ASSERT(!reset());;
 		ASSERT(FREE_PTR_INDEX(MIN_ALLOC_SIZE * 3) == 2);
-		reset();
+		ASSERT(!reset());;
 	}
 }
 
 void test_ptr_free() {
 	{ // Normal case
-		reset();
+		ASSERT(!reset());
 		size_t size1 = MIN_ALLOC_SIZE / 2;
 		size_t size2 = MIN_ALLOC_SIZE * 2;
 		size_t index1 = FREE_PTR_INDEX(size1);
@@ -165,7 +165,7 @@ void test_ptr_free() {
 		ASSERT(ptr4->state == FREE);
 	}
 	{ // Normal case: delete arena
-		reset();
+		ASSERT(!reset());
 		ASSERT(g_arena_tail == &g_arena_head);
 		ASSERT(!arena_expand());
 		void *data = arena_use(MIN_ALLOC_SIZE);
@@ -177,7 +177,7 @@ void test_ptr_free() {
 		ASSERT(g_arena_head.next->prev);
 		ASSERT(!ptr_free(data));
 		ASSERT(g_arena_tail == &g_arena_head);
-		reset();
+		ASSERT(!reset());
 		ASSERT(g_arena_tail == &g_arena_head);
 		ASSERT(!arena_expand());
 		data = arena_use(MIN_ALLOC_SIZE);
@@ -192,18 +192,18 @@ void test_ptr_free() {
 		ASSERT(g_arena_tail->prev == &g_arena_head);
 	}
 	{ // Normal case: munmap
-		reset();
+		ASSERT(!reset());
 		void *data = mmap_use(ARENA_SIZE * 2);
 		ASSERT(data);
 		ASSERT(!PTR(data)->arena);
 		ASSERT(!ptr_free(data));
 	}
 	{ // Data NULL
-		reset();
+		ASSERT(!reset());
 		ASSERT(ptr_free(NULL));
 	}
 	{ // Invalid argument
-		reset();
+		ASSERT(!reset());
 		int x = 5;
 		void *dummy = &x;
 		ASSERT(ptr_free(dummy));
@@ -212,7 +212,7 @@ void test_ptr_free() {
 
 void test_free_ptr_use() {
 	{ // Normal case
-		reset();
+		ASSERT(!reset());
 		size_t size1 = MIN_ALLOC_SIZE / 2;
 		size_t size2 = MIN_ALLOC_SIZE * 2;
 		void *data1 = arena_use(size1);
@@ -258,11 +258,11 @@ void test_free_ptr_use() {
 		ASSERT(ptr8->size == size2);
 	}
 	{ // size 0
-		reset();
+		ASSERT(!reset());
 		ASSERT(!free_ptr_use(0));
 	}
 	{ // no matching free pointer
-		reset();
+		ASSERT(!reset());
 		size_t size = ARENA_SIZE / 32;
 		ASSERT(!free_ptr_use(size));
 	}
@@ -270,7 +270,7 @@ void test_free_ptr_use() {
 
 void test_mmap_use() {
 	{ // Normal case
-		reset();
+		ASSERT(!reset());
 		void *data = mmap_use(ARENA_SIZE * 10);
 		ASSERT(data);
 		ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
@@ -295,12 +295,12 @@ void test_mmap_use() {
 
 void test_alloc_new() {
 	{ // Normal case
-		reset();
+		ASSERT(!reset());
 		int *data = alloc_new(sizeof(int));
 		ASSERT(data);
 	}
 	{ // Normal case: use free list
-		reset();
+		ASSERT(!reset());
 		int *data = alloc_new(sizeof(int));
 		ASSERT(!g_free_ptr_tails[FREE_PTR_INDEX(sizeof(int))]);
 		ASSERT(!ptr_free(data));
@@ -310,13 +310,13 @@ void test_alloc_new() {
 		ASSERT(!g_free_ptr_tails[FREE_PTR_INDEX(sizeof(int))]);
 	} 
 	{ // Normal case: use arena
-		reset();
+		ASSERT(!reset());
 		int *data = alloc_new(sizeof(int));
 		ASSERT(data);
 		ASSERT(g_arena_tail->ptrs_tail == PTR(data));
 	}
 	{ // Normal case: use mmap
-		reset();
+		ASSERT(!reset());
 		typedef struct obj {
 			char buff[ARENA_SIZE * 10];
 		} obj_t;
@@ -325,14 +325,14 @@ void test_alloc_new() {
 		ASSERT(munmap(PTR(obj), TOTAL_SIZE(ARENA_SIZE * 10)) != -1);
 	}
 	{ // size is 0
-		reset();
+		ASSERT(!reset());
 		ASSERT(!alloc_new(0));
 	}
 }
 
 void test_alloc_del() {
 	{ // Normal case
-		reset();
+		ASSERT(!reset());
 		void *data = alloc_new(MIN_ALLOC_SIZE);
 		alloc_del(data);
 		ASSERT(g_free_ptr_tails[FREE_PTR_INDEX(MIN_ALLOC_SIZE)]->data == data);
@@ -341,7 +341,7 @@ void test_alloc_del() {
 
 void test_alloc_resize() {
 	{ // Normal case
-		reset();
+		ASSERT(!reset());
 		int *data = alloc_new(sizeof(int));
 		*data = 5;
 		ASSERT(PTR(data)->size == sizeof(int));

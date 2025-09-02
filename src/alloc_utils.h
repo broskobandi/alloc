@@ -1,3 +1,35 @@
+/*
+MIT License
+
+Copyright (c) 2025 broskobandi
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+/** 
+ * \file src/alloc_utils.h
+ * \brief Private header file for the alloc library.
+ * \details This file contains the forward declarations of global variables, 
+ * the definitions of inline static helper functions, typedefs and
+ * macros for the alloc libary.
+ * */
+
 #ifndef ALLOC_UTILS_H
 #define ALLOC_UTILS_H
 
@@ -7,8 +39,7 @@
 #include <stdbool.h>
 #include <sys/mman.h>
 #include <string.h>
-
-#include <stdio.h>
+#include <stddef.h>
 
 #define ARENA_SIZE 1024LU * 4
 #define ROUNDUP(size)\
@@ -27,14 +58,21 @@
 #define PTR(data)\
 	((ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE))
 
+/** Enum containing the possible pointer states. */
 typedef enum ptr_state {
 	FREE,
 	VALID,
 } ptr_state_t;
 
+/** Arena struct tontaining the main memory buffer and metadata.
+ * Forward declaration. */
 typedef struct arena arena_t;
+
+/** Pointer struct containing a raw pointer and metadata.
+ * Forward declaration. */
 typedef struct ptr ptr_t;
  
+/** Pointer struct containing a raw pointer and metadata. */
 struct ptr {
 	void *data;
 	size_t size;
@@ -46,6 +84,7 @@ struct ptr {
 	ptr_state_t state;
 };
 
+/** Arena struct tontaining the main memory buffer and metadata. */
 struct arena {
 	alignas(max_align_t) unsigned char buff[ARENA_SIZE];
 	size_t offset;
@@ -54,10 +93,20 @@ struct arena {
 	arena_t *prev;
 };
 
+/** Global instance of the arena struct that acts as the head in the linked list.
+ * Forward declaration. */
 extern arena_t g_arena_head;
+
+/** Global instance of the arena struct that acts as the tail in the linked list.
+ * Forward declaration. */
 extern arena_t *g_arena_tail;
+
+/** Global instance of an array of linked lists containing free pointers.
+ * Forward declaration. */
 extern ptr_t *g_free_ptr_tails[NUM_ALLOC_SIZES];
 
+/** Expands the arena by allocating a new node with mmap().
+ * \return 0 on success or 1 on failure. */
 static inline int arena_expand() {
 	g_arena_tail->next = MMAP(sizeof(arena_t));
 	if (!g_arena_tail->next) ERR("Failed to allocate new arena with mmap.", 1);
@@ -69,6 +118,9 @@ static inline int arena_expand() {
 	OK(0);
 }
 
+/** Removes an arena node from the linked list.
+ * \param arena The arena node to be deleted.
+ * \return 0 on success or 1 on failure. */
 static inline int arena_del(arena_t *arena) {
 	if (!arena) ERR("arena cannot be NULL.", 1);
 	if (arena == &g_arena_head) ERR("arena head cannot be deleted.", 1);
@@ -85,6 +137,8 @@ static inline int arena_del(arena_t *arena) {
 	OK(0);
 }
 
+/** Resets all global variables. Unmaps heap memory.
+ * \return 0 on success or 1 on failure. */
 static inline int reset() {
 	error_reset();
 	while (g_arena_tail->prev) {
@@ -98,6 +152,9 @@ static inline int reset() {
 	OK(0);
 }
 
+/** Returns a pointer to a memory block allocated in the arena.
+ * \param size The size of the block to be allocated. 
+ * \return The pointer to the allocated data or NULL on failure. */
 static inline void *arena_use(size_t size) {
 	if (!size) ERR("size cannot be 0.", NULL);
 	if (TOTAL_SIZE(size) > ARENA_SIZE) ERR("size is too big.", NULL);
@@ -123,6 +180,9 @@ static inline void *arena_use(size_t size) {
 	OK(g_arena_tail->ptrs_tail->data);
 }
 
+/** Marks a pointer and its associated data free.
+ * \param data The poiter to the data to be freed.
+ * \return 0 on sucecss or 1 on failure. */
 static inline int ptr_free(void *data) {
 	if (!data) ERR("data cannot be NULL.", 1);
 	ptr_t *ptr = (ptr_t*)((unsigned char*)data - PTR_ALIGNED_SIZE);
@@ -154,6 +214,9 @@ static inline int ptr_free(void *data) {
 	OK(0);
 }
 
+/** Reuses a pointer and its associated data that was previously marked free.
+ * \param size The size of the memory block to be reused. 
+ * \return A pointer to the memory block or NULL on failure. */
 static inline void *free_ptr_use(size_t size) {
 	if (!size) ERR("size cannot be 0.", NULL);
 	ptr_t *ptr = g_free_ptr_tails[FREE_PTR_INDEX(size)];
@@ -171,6 +234,9 @@ static inline void *free_ptr_use(size_t size) {
 	OK(ptr->data);
 }
 
+/** Allocates a block of memory in the heap using mmap().
+ * \param size The size of the memory block to be allocated. 
+ * \return A pointer to the memory block or NULL on failure. */
 static inline void *mmap_use(size_t size) {
 	if (!size) ERR("size cannot be 0.", NULL);
 	if (TOTAL_SIZE(size) <= ARENA_SIZE) ERR("size is too small.", NULL);
