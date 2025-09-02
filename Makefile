@@ -46,6 +46,7 @@ install:
 	cp $(INC) $(INC_INSTALL_DIR)/
 	cp $(LIB_A) $(LIB_INSTALL_DIR)/
 	cp $(LIB_SO) $(LIB_INSTALL_DIR)/
+	ldconfig
 
 uninstall:
 	rm $(addprefix $(LIB_INSTALL_DIR)/, $(notdir $(LIB_A)))
