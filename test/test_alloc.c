@@ -7,6 +7,7 @@
 
 void test_arena_expand() {
 	{ // Normal case
+		reset();
 		ASSERT(!g_arena_head.next);
 		ASSERT(g_arena_tail == &g_arena_head);
 		ASSERT(!arena_expand());
@@ -20,6 +21,7 @@ void test_arena_expand() {
 
 void test_arena_reset() {
 	{ // Normal case
+		reset();
 		ASSERT(!arena_expand());
 		ASSERT(!arena_expand());
 		ASSERT(!arena_expand());

@@ -42,6 +42,8 @@ SOFTWARE.
 #include <stddef.h>
 
 #define ARENA_SIZE 1024LU * 4
+// #define ARENA_SIZE 1024LU * 32
+// #define ARENA_SIZE 1024LU * 128
 #define ROUNDUP(size)\
 	(size_t)(((size) + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1))
 #define PTR_ALIGNED_SIZE\
@@ -95,20 +97,23 @@ struct arena {
 
 /** Global instance of the arena struct that acts as the head in the linked list.
  * Forward declaration. */
-extern arena_t g_arena_head;
+extern _Thread_local arena_t g_arena_head;
+// extern arena_t g_arena_head;
 
 /** Global instance of the arena struct that acts as the tail in the linked list.
  * Forward declaration. */
-extern arena_t *g_arena_tail;
+extern _Thread_local arena_t *g_arena_tail;
+// extern arena_t *g_arena_tail;
 
 /** Global instance of an array of linked lists containing free pointers.
  * Forward declaration. */
-extern ptr_t *g_free_ptr_tails[NUM_ALLOC_SIZES];
+extern _Thread_local ptr_t *g_free_ptr_tails[NUM_ALLOC_SIZES];
+// extern ptr_t *g_free_ptr_tails[NUM_ALLOC_SIZES];
 
 /** Expands the arena by allocating a new node with mmap().
  * \return 0 on success or 1 on failure. */
 static inline int arena_expand() {
-	g_arena_tail->next = MMAP(sizeof(arena_t));
+	g_arena_tail->next = (arena_t*)MMAP(sizeof(arena_t));
 	if (!g_arena_tail->next) ERR("Failed to allocate new arena with mmap.", 1);
 	g_arena_tail->next->prev = g_arena_tail;
 	g_arena_tail = g_arena_tail->next;
@@ -141,7 +146,7 @@ static inline int arena_del(arena_t *arena) {
  * \return 0 on success or 1 on failure. */
 static inline int reset() {
 	error_reset();
-	while (g_arena_tail->prev) {
+	while (g_arena_tail && g_arena_tail->prev) {
 		g_arena_tail = g_arena_tail->prev;
 		if (munmap(g_arena_tail->next, sizeof(arena_t)) == -1)
 			ERR("Failed to unmap arena.", 1);
@@ -240,7 +245,7 @@ static inline void *free_ptr_use(size_t size) {
 static inline void *mmap_use(size_t size) {
 	if (!size) ERR("size cannot be 0.", NULL);
 	if (TOTAL_SIZE(size) <= ARENA_SIZE) ERR("size is too small.", NULL);
-	ptr_t *ptr = MMAP(TOTAL_SIZE(size));
+	ptr_t *ptr = (ptr_t*)MMAP(TOTAL_SIZE(size));
 	if (!ptr) ERR("Failed to allocate ptr with mmap().", NULL);
 	ptr->data = (unsigned char*)ptr + PTR_ALIGNED_SIZE;
 	ptr->state = VALID;

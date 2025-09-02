@@ -33,16 +33,21 @@ SOFTWARE.
 #include <pthread.h>
 
 /** Global instance of the arena struct that acts as the head in the linked list. */
-arena_t g_arena_head;
+// _Thread_local arena_t g_arena_head;
+// arena_t g_arena_head = {0};
+_Thread_local arena_t g_arena_head = {0};
 
 /** Global instance of the arena struct that acts as the tail in the linked list. */
-arena_t *g_arena_tail = &g_arena_head;
+// _Thread_local arena_t *g_arena_tail = &g_arena_head;
+_Thread_local arena_t *g_arena_tail = NULL;
+// arena_t *g_arena_tail = NULL;
 
 /** Global instance of an array of linked lists containing free pointers. */
-ptr_t *g_free_ptr_tails[NUM_ALLOC_SIZES] = {0};
+_Thread_local ptr_t *g_free_ptr_tails[NUM_ALLOC_SIZES] = {0};
+// ptr_t *g_free_ptr_tails[NUM_ALLOC_SIZES] = {0};
 
 /** Global instance of a mutex object. */
-pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
+// pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /** Allocates a new block of memory.
  * \param size The size of the memory to be allocated. 
@@ -50,23 +55,24 @@ pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
  * It sets errno on failure. */
 void *alloc_new(size_t size) {
 	if (!size) ERR("size cannot be 0.", NULL);
-	pthread_mutex_lock(&g_mutex);
+	if (!g_arena_tail) g_arena_tail = &g_arena_head;
+	// pthread_mutex_lock(&g_mutex);
 	if (TOTAL_SIZE(size) > ARENA_SIZE) {
 		void *ptr = mmap_use(size);
-		pthread_mutex_unlock(&g_mutex);
+		// pthread_mutex_unlock(&g_mutex);
 		return ptr;
 	}
 	if (g_free_ptr_tails[FREE_PTR_INDEX(size)] && TOTAL_SIZE(size) <= ARENA_SIZE) {
 		void *ptr = free_ptr_use(size);
-		pthread_mutex_unlock(&g_mutex);
+		// pthread_mutex_unlock(&g_mutex);
 		return ptr;
 	}
 	if (!g_free_ptr_tails[FREE_PTR_INDEX(size)] && TOTAL_SIZE(size) <= ARENA_SIZE) {
 		void *ptr = arena_use(size);
-		pthread_mutex_unlock(&g_mutex);
+		// pthread_mutex_unlock(&g_mutex);
 		return ptr;
 	}
-	pthread_mutex_unlock(&g_mutex);
+	// pthread_mutex_unlock(&g_mutex);
 	ERR("Failed to allocate memory.", NULL);
 }
 
@@ -75,9 +81,9 @@ void *alloc_new(size_t size) {
  * It sets errno on failure. */
 void alloc_del(void *ptr) {
 	if (!ptr) ERR("ptr cannot be NULL.");
-	pthread_mutex_lock(&g_mutex);
+	// pthread_mutex_lock(&g_mutex);
 	if (ptr_free(ptr)) ERROR_SET("Failed to free pointer.");
-	pthread_mutex_unlock(&g_mutex);
+	// pthread_mutex_unlock(&g_mutex);
 }
 
 /** Allocates a new block and copies the old content over.
