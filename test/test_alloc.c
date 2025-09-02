@@ -339,20 +339,22 @@ void test_alloc_del() {
 	}
 }
 
-// void test_alloc_resize() {
-// 	{ // Normal case
-// 		reset();
-// 		int *data1 = alloc_new(sizeof(int));
-// 		*data1 = 5;
-// 		int *data2 = alloc_resize(data1, sizeof(int) * 2);
-// 		ASSERT(data2);
-// 	}
-// 	{ // size is 0
-// 		int x = 5;
-// 		void *ptr = &x;
-// 		ASSERT(!alloc_resize(ptr, 0));
-// 	}
-// 	{ // ptr is NULL
-// 		ASSERT(!alloc_resize(NULL, 4));
-// 	}
-// }
+void test_alloc_resize() {
+	{ // Normal case
+		reset();
+		int *data = alloc_new(sizeof(int));
+		*data = 5;
+		ASSERT(PTR(data)->size == sizeof(int));
+		ASSERT(!alloc_resize((void**)&data, sizeof(int) * 2));
+		ASSERT(PTR(data)->size == sizeof(int) * 2);
+		ASSERT(*data == 5);
+	}
+	{ // size is 0
+		int x = 5;
+		void *ptr = &x;
+		ASSERT(alloc_resize(&ptr, 0));
+	}
+	{ // ptr is NULL
+		ASSERT(alloc_resize(NULL, 4));
+	}
+}
