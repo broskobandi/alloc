@@ -48,7 +48,7 @@ int main(void) {
 	return 0;
 }
 ```
-Use -L/usr/local/bin -lalloc as compiler flags.
+Use -L/usr/local/lib -lalloc as compiler flags.
 
 ## Documentation
 ```bash
