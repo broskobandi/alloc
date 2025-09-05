@@ -1,3 +1,7 @@
+I learned lots while writing this project. In fact I learned so much from it that I decided to abandon it and rewrite it from ground up. I will leave this one here just as a sort of documentation. 
+My new allocator project is mem_alloc:
+https://github.com/broskobandi/mem-alloc.git
+
 # alloc
 Memory allocator written in C.
 
